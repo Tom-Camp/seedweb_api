@@ -9,6 +9,7 @@ from app.endpoints.projects.model import Project
 from app.endpoints.projects.resource import (
     ProjectDataResources,
     ProjectResources,
+    ProjectStatusResource,
     project_home_fields,
 )
 from config import Config
@@ -53,6 +54,9 @@ class HomePage(Resource):
 
 api.add_resource(HomePage, "/")
 api.add_resource(ProjectResources, "/projects", "/projects/<int:project_id>")
+api.add_resource(
+    ProjectStatusResource, "/projects", "/projects/<int:project_id>/status"
+)
 api.add_resource(ProjectDataResources, "/data", "/data/<int:sensor_id>")
 
 
