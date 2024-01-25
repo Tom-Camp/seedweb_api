@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 from flask_restful import Resource, fields, marshal, marshal_with, reqparse, request
 
@@ -162,6 +163,18 @@ sensor_post_parser.add_argument(
     location=["json"],
     help="The project_id parameter is required",
 )
+
+
+class ProjectStatusResource(Resource):
+    @staticmethod
+    def get(project_id=None) -> dict:
+        project = Project.query.get_or_404(project_id)
+        now = datetime.now()
+        base = datetime.now().strftime("%m/%d/%y")
+        start = datetime.strptime(f"{base} {project.start}", "%m/%d/%y %H:%M")
+        end = datetime.strptime(f"{base} {project.end}", "%m/%d/%y %H:%M")
+        status = True if now > start and now < end else False
+        return {"status": status, "profile": project.profile}
 
 
 class ProjectDataResources(Resource):

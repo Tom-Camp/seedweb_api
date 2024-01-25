@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
+from flask_migrate import Migrate
 from flask_restful import Api, Resource, marshal
 from werkzeug.exceptions import HTTPException, default_exceptions
 
@@ -8,12 +9,14 @@ from app.endpoints.projects.model import Project
 from app.endpoints.projects.resource import (
     ProjectDataResources,
     ProjectResources,
+    ProjectStatusResource,
     project_home_fields,
 )
 from config import Config
 
 app = Flask(__name__)
 CORS(app)
+migrate = Migrate()
 
 
 @app.errorhandler(Exception)
@@ -32,6 +35,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = Config.SQLALCHEMY_TRACK_MODIFICAT
 app.config["BUNDLE_ERRORS"] = Config.BUNDLE_ERRORS
 
 db.init_app(app)
+migrate.init_app(app, db)
 api = Api(app)
 api.prefix = "/api"
 
@@ -50,6 +54,9 @@ class HomePage(Resource):
 
 api.add_resource(HomePage, "/")
 api.add_resource(ProjectResources, "/projects", "/projects/<int:project_id>")
+api.add_resource(
+    ProjectStatusResource, "/projects", "/projects/<int:project_id>/status"
+)
 api.add_resource(ProjectDataResources, "/data", "/data/<int:sensor_id>")
 
 
