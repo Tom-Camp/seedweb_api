@@ -1,5 +1,6 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
+from flask_migrate import Migrate
 from flask_restful import Api, Resource, marshal
 from werkzeug.exceptions import HTTPException, default_exceptions
 
@@ -14,6 +15,7 @@ from config import Config
 
 app = Flask(__name__)
 CORS(app)
+migrate = Migrate()
 
 
 @app.errorhandler(Exception)
@@ -32,6 +34,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = Config.SQLALCHEMY_TRACK_MODIFICAT
 app.config["BUNDLE_ERRORS"] = Config.BUNDLE_ERRORS
 
 db.init_app(app)
+migrate.init_app(app, db)
 api = Api(app)
 api.prefix = "/api"
 
