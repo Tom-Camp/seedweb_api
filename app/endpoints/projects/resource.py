@@ -4,7 +4,7 @@ from datetime import datetime
 from flask_restful import Resource, fields, marshal, marshal_with, reqparse, request
 
 from app import db
-from app.endpoints.projects.model import Project, ProjectData
+from app.endpoints.projects.model import Project, ProjectData, ProjectNotes
 
 
 class SensorDataJson(fields.Raw):
@@ -22,6 +22,12 @@ sensor_fields: dict = {
     "created_date": FormatDate(),
 }
 
+
+note_fields: dict = {
+    "note": fields.String,
+    "created_date": FormatDate(),
+}
+
 project_fields: dict = {
     "name": fields.String,
     "bed_id": fields.String,
@@ -30,6 +36,7 @@ project_fields: dict = {
     "start": fields.String,
     "end": fields.String,
     "data": fields.List(fields.Nested(sensor_fields)),
+    "notes": fields.List(fields.Nested(note_fields)),
 }
 
 project_list_fields: dict = {
@@ -70,7 +77,7 @@ project_post_parser.add_argument(
     location=["json"],
     help="The description parameter is required",
 )
-project_post_parser.add_argument("profile")
+project_post_parser.add_argument("profile_id")
 project_post_parser.add_argument("start")
 project_post_parser.add_argument("end")
 
@@ -133,6 +140,9 @@ class ProjectResources(Resource):
             if "end" in args:
                 project.end = args.get("end")
 
+            if "profile_id" in args:
+                project.profile_id = args.get("profile_id")
+
             db.session.commit()
             return {"message": "Item updated successfully"}, 200
         else:
@@ -146,6 +156,18 @@ class ProjectResources(Resource):
         db.session.commit()
 
         return "", 204
+
+
+class ProjectStatusResource(Resource):
+    @staticmethod
+    def get(project_id=None) -> dict:
+        project = Project.query.get_or_404(project_id)
+        now = datetime.now()
+        base = datetime.now().strftime("%m/%d/%y")
+        start = datetime.strptime(f"{base} {project.start}", "%m/%d/%y %H:%M")
+        end = datetime.strptime(f"{base} {project.end}", "%m/%d/%y %H:%M")
+        status = True if now > start and now < end else False
+        return {"status": status, "profile": project.profile}
 
 
 sensor_post_parser = reqparse.RequestParser()
@@ -163,18 +185,6 @@ sensor_post_parser.add_argument(
     location=["json"],
     help="The project_id parameter is required",
 )
-
-
-class ProjectStatusResource(Resource):
-    @staticmethod
-    def get(project_id=None) -> dict:
-        project = Project.query.get_or_404(project_id)
-        now = datetime.now()
-        base = datetime.now().strftime("%m/%d/%y")
-        start = datetime.strptime(f"{base} {project.start}", "%m/%d/%y %H:%M")
-        end = datetime.strptime(f"{base} {project.end}", "%m/%d/%y %H:%M")
-        status = True if now > start and now < end else False
-        return {"status": status, "profile": project.profile}
 
 
 class ProjectDataResources(Resource):
@@ -213,3 +223,58 @@ class ProjectDataResources(Resource):
         db.session.commit()
 
         return "", 204
+
+
+notes_post_parser = reqparse.RequestParser()
+notes_post_parser.add_argument(
+    "note",
+    type=str,
+    required=True,
+    location=["json"],
+    help="The note parameter is required",
+)
+notes_post_parser.add_argument(
+    "project_id",
+    type=str,
+    required=True,
+    location=["json"],
+    help="The project_id parameter is required",
+)
+
+
+class ProjectNoteResources(Resource):
+    @staticmethod
+    def get(note_id: int):
+        note = ProjectNotes.query.get_or_404(note_id)
+        return marshal(note, note_fields)
+
+    @staticmethod
+    @marshal_with(note_fields)
+    def post() -> ProjectNotes:
+        args = notes_post_parser.parse_args()
+
+        note = ProjectNotes(**args)
+        db.session.add(note)
+        db.session.commit()
+        return note
+
+    @staticmethod
+    def patch(note_id: int):
+        args = notes_post_parser.parse_args()
+        note_obj = ProjectNotes.query.get_or_404(note_id)
+
+        if note_obj:
+            if "note" in args:
+                note_obj.note = args.get("note")
+            return {"message": "Note updated successfully"}, 200
+        else:
+            return {"message": "Note not found"}, 404
+
+    @staticmethod
+    def delete(note_id: int):
+        note_obj = ProjectData.query.get_or_404(note_id)
+
+        db.session.delete(note_obj)
+        db.session.commit()
+
+        return "The note was deleted", 204
