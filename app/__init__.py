@@ -5,6 +5,7 @@ from flask_restful import Api, Resource, marshal
 from werkzeug.exceptions import HTTPException, default_exceptions
 
 from app.database import db
+from app.endpoints.profiles.resource import ProfileResources
 from app.endpoints.projects.model import Project
 from app.endpoints.projects.resource import (
     ProjectDataResources,
@@ -58,6 +59,7 @@ api.add_resource(
     ProjectStatusResource, "/projects", "/projects/<int:project_id>/status"
 )
 api.add_resource(ProjectDataResources, "/data", "/data/<int:sensor_id>")
+api.add_resource(ProfileResources, "/profiles", "/profiles/<int:profile_id>")
 
 
 if __name__ == "__main__":

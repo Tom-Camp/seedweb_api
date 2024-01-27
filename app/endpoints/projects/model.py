@@ -5,10 +5,11 @@ from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import db
+from app.endpoints.profiles.model import Profile
 
 
 class Project(db.Model):
-    __tablename__ = "project"
+    __tablename__ = "project_table"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     created: Mapped[datetime] = mapped_column(
@@ -20,7 +21,8 @@ class Project(db.Model):
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     bed_id: Mapped[str] = mapped_column(String)
     description: Mapped[str | None] = mapped_column(Text)
-    profile: Mapped[str | None] = mapped_column(String)
+    profile_id: Mapped[int | None] = mapped_column(ForeignKey("profile_table.id"))
+    profile: Mapped["Profile"] = relationship()
     start: Mapped[str] = mapped_column(String)
     end: Mapped[str] = mapped_column(String)
     data: Mapped[List["ProjectData"]] = relationship(
@@ -32,7 +34,7 @@ class Project(db.Model):
 
 
 class ProjectData(db.Model):
-    __tablename__ = "project_data"
+    __tablename__ = "project_data_table"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     created_date: Mapped[datetime] = mapped_column(
@@ -42,7 +44,7 @@ class ProjectData(db.Model):
         DateTime(timezone=True), server_default=func.now()
     )
     sensor_data: Mapped[str] = mapped_column(String)
-    project_id: Mapped[int] = mapped_column(ForeignKey("project.id"))
+    project_id: Mapped[int] = mapped_column(ForeignKey("project_table.id"))
     project: Mapped["Project"] = relationship(back_populates="data")
 
     def __repr__(self):

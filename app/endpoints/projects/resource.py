@@ -70,7 +70,7 @@ project_post_parser.add_argument(
     location=["json"],
     help="The description parameter is required",
 )
-project_post_parser.add_argument("profile")
+project_post_parser.add_argument("profile_id")
 project_post_parser.add_argument("start")
 project_post_parser.add_argument("end")
 
@@ -132,6 +132,9 @@ class ProjectResources(Resource):
 
             if "end" in args:
                 project.end = args.get("end")
+
+            if "profile_id" in args:
+                project.profile_id = args.get("profile_id")
 
             db.session.commit()
             return {"message": "Item updated successfully"}, 200
