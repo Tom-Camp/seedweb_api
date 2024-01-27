@@ -33,7 +33,7 @@ class Project(db.Model):
     )
 
     def __repr__(self):
-        return f"<Project: {self.name}>"
+        return f"Project: {self.name}"
 
 
 class ProjectData(db.Model):
@@ -51,7 +51,7 @@ class ProjectData(db.Model):
     project: Mapped["Project"] = relationship(back_populates="data")
 
     def __repr__(self):
-        return f"<Project Data: {self.id}>"
+        return f"Project Data: {self.id}"
 
 
 class ProjectNotes(db.Model):
@@ -67,3 +67,6 @@ class ProjectNotes(db.Model):
     note: Mapped[List[str]] = mapped_column(String)
     project_id: Mapped[int] = mapped_column(ForeignKey("project_table.id"))
     project: Mapped["Project"] = relationship(back_populates="notes")
+
+    def __repr__(self):
+        return f"Note: {self.id}"

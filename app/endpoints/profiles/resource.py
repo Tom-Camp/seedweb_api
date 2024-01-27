@@ -130,8 +130,7 @@ class ProfileResources(Resource):
     @staticmethod
     def delete(profile_id):
         project = Profile.query.get_or_404(profile_id)
-
         db.session.delete(project)
         db.session.commit()
 
-        return "", 204
+        return f"Profile: {project.name} deleted.", 204
