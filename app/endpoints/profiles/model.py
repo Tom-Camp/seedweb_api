@@ -24,7 +24,7 @@ class Color(db.Model):
     )
 
     def __repr__(self):
-        return f"<Color: {self.color.r}, {self.color.g}, {self.color.b}>"
+        return f"Color: ({self.color.r}, {self.color.g}, {self.color.b})"
 
 
 class ColorAssociation(db.Model):
@@ -55,4 +55,4 @@ class Profile(db.Model):
     )
 
     def __repr__(self):
-        return f"<Profile: {self.name}>"
+        return f"Profile: {self.name}"
