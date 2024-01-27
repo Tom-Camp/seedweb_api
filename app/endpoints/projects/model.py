@@ -28,6 +28,9 @@ class Project(db.Model):
     data: Mapped[List["ProjectData"]] = relationship(
         back_populates="project", cascade="all, delete"
     )
+    notes: Mapped[List["ProjectNotes"]] = relationship(
+        back_populates="project", cascade="all, delete"
+    )
 
     def __repr__(self):
         return f"<Project: {self.name}>"
@@ -49,3 +52,18 @@ class ProjectData(db.Model):
 
     def __repr__(self):
         return f"<Project Data: {self.id}>"
+
+
+class ProjectNotes(db.Model):
+    __tablename__ = "project_notes_tables"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    created_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_date: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    note: Mapped[List[str]] = mapped_column(String)
+    project_id: Mapped[int] = mapped_column(ForeignKey("project_table.id"))
+    project: Mapped["Project"] = relationship(back_populates="notes")
