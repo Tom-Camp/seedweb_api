@@ -4,6 +4,7 @@ from datetime import datetime
 from flask_restful import Resource, fields, marshal, marshal_with, reqparse, request
 
 from app import db
+from app.endpoints.profiles.resource import ColorField
 from app.endpoints.projects.model import Project, ProjectData, ProjectNotes
 
 
@@ -17,11 +18,16 @@ class FormatDate(fields.Raw):
         return value.strftime("%b %d, %Y - %H:%M")
 
 
+status_fields: dict = {
+    "status": fields.Boolean,
+    "colors": ColorField(),
+}
+
+
 sensor_fields: dict = {
     "sensor_data": SensorDataJson(),
     "created_date": FormatDate(),
 }
-
 
 note_fields: dict = {
     "note": fields.String,
@@ -49,9 +55,10 @@ project_list_fields: dict = {
 
 project_home_fields: dict = {
     "id": fields.Integer,
-    "updated": FormatDate(),
+    "created": FormatDate(),
     "name": fields.String,
     "bed_id": fields.String,
+    "description": fields.String,
     "data": fields.List(fields.Nested(sensor_fields)),
 }
 
@@ -160,14 +167,18 @@ class ProjectResources(Resource):
 
 class ProjectStatusResource(Resource):
     @staticmethod
+    @marshal_with(status_fields)
     def get(project_id=None) -> dict:
         project = Project.query.get_or_404(project_id)
         now = datetime.now()
         base = datetime.now().strftime("%m/%d/%y")
         start = datetime.strptime(f"{base} {project.start}", "%m/%d/%y %H:%M")
         end = datetime.strptime(f"{base} {project.end}", "%m/%d/%y %H:%M")
-        status = True if now > start and now < end else False
-        return {"status": status, "profile": project.profile}
+        status_object: dict = {
+            "status": True if now > start and now < end else False,
+            "colors": project.profile.colors,
+        }
+        return status_object
 
 
 sensor_post_parser = reqparse.RequestParser()
