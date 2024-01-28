@@ -1,3 +1,5 @@
+import json
+
 from flask_restful import (
     Resource,
     abort,
@@ -9,25 +11,30 @@ from flask_restful import (
 )
 
 from app import db
-from app.endpoints.profiles.model import Color, ColorAssociation, Profile, RgbColor
+from app.endpoints.profiles.model import Color, Profile, RgbColor
 
 
 class ColorField(fields.Raw):
     def format(self, value):
-        return value.r, value.g, value.b
+        clr = json.loads(value)
+        color_sets: list = []
+        for color_id in clr:
+            color_list = Color.query.get(color_id)
+            color_sets.append((color_list.r, color_list.g, color_list.b))
+        return color_sets
 
 
-colors: dict = {"color": ColorField()}
+colors_fields: dict = {"colors": ColorField()}
 
 profile_fields: dict = {
     "name": fields.String,
-    "colors": fields.List(fields.Nested(colors)),
+    "colors": ColorField(),
 }
 
 profile_list_fields: dict = {
     "id": fields.Integer,
     "name": fields.String,
-    "colors": fields.List(fields.Nested(colors)),
+    "colors": fields.List(ColorField()),
 }
 
 profile_post_parser = reqparse.RequestParser()
@@ -38,13 +45,7 @@ profile_post_parser.add_argument(
     location=["json"],
     help="The name parameter is required",
 )
-profile_post_parser.add_argument(
-    "colors",
-    type=list,
-    required=True,
-    location=["json"],
-    help="The colors list is required",
-)
+profile_post_parser.add_argument("colors")
 
 
 class ProfileResources(Resource):
@@ -73,11 +74,14 @@ class ProfileResources(Resource):
 
             return marshal(profile, profile_list_fields)
 
-    @staticmethod
     @marshal_with(profile_fields)
-    def post() -> Profile:
+    def post(self) -> Profile:
         args = profile_post_parser.parse_args()
-        profile = Profile(name=args.get("name"))
+        new_colors = self.add_colors(args=args)
+        profile = Profile(
+            name=args.get("name"),
+            colors=new_colors,
+        )
 
         try:
             db.session.add(profile)
@@ -86,35 +90,10 @@ class ProfileResources(Resource):
             db.session.rollback()
             abort(500, message=f"Error creating Profile: {str(e)}")
 
-        for color in args.get("colors"):
-            rgb_color = RgbColor(r=color[0], g=color[1], b=color[2])
-            color_obj = Color.query.filter_by(color=rgb_color).first()
-
-            if not color_obj:
-                color_obj = Color(color=rgb_color)
-
-            try:
-                db.session.add(color_obj)
-                db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                abort(500, message=f"Error creating Profile: {str(e)}")
-
-            new_assoc = ColorAssociation(
-                profile_id=profile.id,
-                color_id=color_obj.id,
-            )
-            try:
-                db.session.add(new_assoc)
-                db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                abort(500, message=f"Error creating Profile: {str(e)}")
-
         return profile
 
-    @staticmethod
-    def patch(profile_id: int):
+    @marshal_with(profile_fields)
+    def patch(self, profile_id: int):
         args = profile_post_parser.parse_args()
         profile = Profile.query.get_or_404(profile_id)
 
@@ -122,15 +101,37 @@ class ProfileResources(Resource):
             if "name" in args:
                 profile.name = args.get("name")
 
+            if "colors" in args:
+                new_colors = self.add_colors(args)
+                profile.colors = new_colors
             db.session.commit()
-            return {"message": "Profile updated successfully"}, 200
+
+            return profile, 200
         else:
             return {"message": "Item not found"}, 404
 
     @staticmethod
-    def delete(profile_id):
-        project = Profile.query.get_or_404(profile_id)
-        db.session.delete(project)
+    def delete(profile_id: int):
+        profile = Profile.query.get_or_404(profile_id)
+        db.session.delete(profile)
         db.session.commit()
 
-        return f"Profile: {project.name} deleted.", 204
+        return {"message": f"Profile: {profile.name} deleted."}, 204
+
+    @staticmethod
+    def add_colors(args: dict) -> str:
+        color_list: list = []
+
+        if isinstance(args.get("colors"), str):
+            color_json = json.loads(args.get("colors", ""))
+            for color in color_json:
+                rgb_color = RgbColor(r=color[0], g=color[1], b=color[2])
+                color_obj = Color.query.filter_by(color=rgb_color).first()
+
+                if not color_obj:
+                    color_obj = Color(color=rgb_color)
+                    db.session.add(color_obj)
+                    db.session.commit()
+
+                color_list.append(color_obj.id)
+        return json.dumps(color_list)
