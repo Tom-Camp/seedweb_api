@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 
+import pytz
 from flask_restful import Resource, fields, marshal, marshal_with, reqparse, request
 
 from app import db
@@ -15,7 +16,11 @@ class SensorDataJson(fields.Raw):
 
 class FormatDate(fields.Raw):
     def format(self, value):
-        return value.strftime("%b %d, %Y - %H:%M")
+        return (
+            value.replace(tzinfo=pytz.utc)
+            .astimezone(pytz.timezone("America/New_York"))
+            .strftime("%b %d, %Y - %H:%M")
+        )
 
 
 status_fields: dict = {
@@ -36,6 +41,7 @@ note_fields: dict = {
 
 project_fields: dict = {
     "name": fields.String,
+    "created": FormatDate(),
     "bed_id": fields.String,
     "description": fields.String,
     "profile": fields.String,
@@ -175,7 +181,7 @@ class ProjectStatusResource(Resource):
         start = datetime.strptime(f"{base} {project.start}", "%m/%d/%y %H:%M")
         end = datetime.strptime(f"{base} {project.end}", "%m/%d/%y %H:%M")
         status_object: dict = {
-            "status": True if now > start and now < end else False,
+            "status": True if start < now < end else False,
             "colors": project.profile.colors,
         }
         return status_object
