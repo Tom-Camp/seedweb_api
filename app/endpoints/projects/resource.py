@@ -29,6 +29,12 @@ status_fields: dict = {
 }
 
 
+status_fields: dict = {
+    "status": fields.Boolean,
+    "colors": ColorField(),
+}
+
+
 sensor_fields: dict = {
     "sensor_data": SensorDataJson(),
     "created_date": FormatDate(),
