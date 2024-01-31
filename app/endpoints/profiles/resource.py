@@ -15,7 +15,7 @@ from app.endpoints.profiles.model import Color, Profile, RgbColor
 
 
 class ColorField(fields.Raw):
-    def format(self, value):
+    def format(self, value) -> list:
         clr = json.loads(value)
         color_sets: list = []
         for color_id in clr:
